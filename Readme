@@ -1,0 +1,67 @@
+# 添加用户
+```shell
+# 1. 创建用户（使用 adduser 交互式设置密码）
+adduser alice
+
+# 2. 添加到 sudo 组
+usermod -aG sudo alice
+```
+
+# 设置 SSH 密钥登录
+```shell
+su - alice
+
+# 创建 SSH 密钥对
+ssh-keygen -t rsa -b 4096 -C "注释信息（通常是邮箱或用途）"
+
+# 或者手动将公钥添加到 authorized_keys
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
+# 将你的公钥粘贴到 ~/.ssh/authorized_keys
+echo "ssh-ed25519 AAAAC3... your-public-key" >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+
+# 退出回到 root
+exit
+```
+
+# 配置root密码
+```shell
+sudo passwd root
+```
+
+# VSCode ssh config
+```shell
+  Host aliyun
+    HostName ip
+    User alice
+# 语法：RemoteForward <服务器端口> <本地地址>:<本地Clash端口>
+    RemoteForward 7890 127.0.0.1:7890
+# root: ILove77!
+# xr: love77
+```
+
+# 配置代理
+```shell
+# 配置代理快捷指令
+vim ~/.bashrc
+
+# 开启代理的快捷指令
+alias proxy='export all_proxy=socks5://127.0.0.1:7890 http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890; echo "Proxy On"'
+
+# 关闭代理的快捷指令
+alias unproxy='unset all_proxy http_proxy https_proxy; echo "Proxy Off"'
+
+# 使配置生效
+source ~/.bashrc
+```
+# VSCode 推荐插件
+- Material Icon Theme
+- GitLens
+- bracket-pair-colorizer-2
+
+# 配置go
+```shell
+
+```
