@@ -37,7 +37,7 @@ sudo passwd root
     HostName ip
     User alice
 # 语法：RemoteForward <服务器端口> <本地地址>:<本地Clash端口>
-    RemoteForward 7890 127.0.0.1:7890
+    RemoteForward 7899 127.0.0.1:7890
 # root: ILove77!
 # xr: love77
 ```
@@ -47,14 +47,126 @@ sudo passwd root
 # 配置代理快捷指令
 vim ~/.bashrc
 
-# 开启代理的快捷指令
-alias proxy='export all_proxy=socks5://127.0.0.1:7890 http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890; echo "Proxy On"'
+# 1. 主力代理：走服务器上的 Clash (端口 7890)
+# TUN模式下不推荐开启
+alias proxy='export all_proxy=socks5://127.0.0.1:7890 http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890; echo "Proxy: Local Clash (7890)"'
 
-# 关闭代理的快捷指令
+# 2. 备用代理：走 SSH 隧道回 Windows (端口 7899)
+# 当服务器 Clash 挂了，或者需要更新订阅时用这个
+alias proxywin='export all_proxy=socks5://127.0.0.1:7899 http_proxy=http://127.0.0.1:7899 https_proxy=http://127.0.0.1:7899; echo "Proxy: Windows Tunnel (7899)"'
+
+# 3. 关闭代理
 alias unproxy='unset all_proxy http_proxy https_proxy; echo "Proxy Off"'
 
 # 使配置生效
 source ~/.bashrc
+```
+
+# 配置 Clash
+教程源自https://fanqiang.gitbook.io/fanqiang/linux
+1. 创建目录
+```shell
+mkdir -p ~/.config/mihomo/ && cd ~/.config/mihomo/
+```
+2. 下载clash
+```shell
+wget -O clash-linux.gz https://github.com/MetaCubeX/mihomo/releases/download/v1.17.0/mihomo-linux-amd64-v1.17.0.gz
+```
+3. 解压clash
+```shell
+gzip -f clash-linux.gz -d 
+```
+4. 授予权限
+```shell
+chmod +x clash-linux && sudo setcap cap_net_bind_service,cap_net_admin+ep ./clash-linux
+```
+5. 初始化
+```shell
+./clash-linux
+```
+等几分钟后 Ctrl+C 退出
+
+6. 下载Country.mmdb
+```shell
+wget -O Country.mmdb https://github.com/Dreamacro/maxmind-geoip/releases/download/20251212/Country.mmdb
+```
+7. 下载GeoSite.dat
+```shell
+wget -O GeoSite.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+```
+8. 下载Clash配置文件
+```shell
+wget -U "Mozilla/6.0" -O ~/.config/mihomo/config.yaml  "订阅链接"
+```
+10. 编辑config.yaml
+```yaml
+ipv6: false       # 建议关闭IPV6防止漏网
+
+# =========================
+# 核心：TUN 模式配置
+# =========================
+tun:
+  enable: true
+  stack: system       # 使用 system 栈，兼容性最好
+  dns-hijack:
+    - any:53          # 劫持所有 DNS 请求
+  auto-route: true    # 自动添加路由表，让流量走 TUN
+  auto-detect-interface: true # 自动检测出口网卡
+
+# 参数应填写配置目录的相对路径或绝对路径。
+# external-ui: folder
+
+# =========================
+# 核心：DNS 配置 (TUN 模式必须开启 DNS)
+# =========================
+
+dns:
+    enable: true
+    listen: 0.0.0.0:1053
+    ipv6: false
+    default-nameserver: [223.5.5.5, 119.29.29.29, 8.8.8.8]
+    enhanced-mode: fake-ip
+    fake-ip-range: 198.18.0.1/16
+    use-hosts: true
+    nameserver: ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query']
+    fallback: ['https://doh.dns.sb/dns-query', 'https://dns.cloudflare.com/dns-query', 'https://dns.twnic.tw/dns-query', 'tls://8.8.4.4:853']
+    fallback-filter: { geoip: true, ipcidr: [240.0.0.0/4, 0.0.0.0/32] }
+```
+
+11. 配置开机自启
+```shell
+sudo vim /etc/systemd/system/clash.service
+
+[Unit]
+Description=Clash Daemon
+After=network.target
+
+[Service]
+Type=simple
+# 指定以你的用户身份运行（因为你已经给了 cap 权限，不需要 root）
+User=xr
+Group=xr
+
+# 核心启动命令：指定执行文件 和 配置目录 (-d)
+ExecStart=/home/xr/.config/mihomo/clash-linux -d /home/xr/.config/mihomo
+
+Restart=on-failure
+
+# 允许服务绑定特权端口和修改网络栈 (再次确保 Systemd 认可这些权限)
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_ADMIN
+
+[Install]
+WantedBy=multi-user.target
+```
+12. 启动服务
+```shell
+sudo systemctl daemon-reload
+sudo systemctl enable clash
+sudo systemctl start clash
+```
+13. 查看服务状态
+```shell
+sudo systemctl status clash
 ```
 # VSCode 推荐插件
 - Material Icon Theme
