@@ -177,3 +177,12 @@ sudo systemctl status clash
 ```shell
 
 ```
+
+# 配置C/C++开发环境
+安装VSCode插件:CMake Tools,Clangd
+
+# 配置git
+```shell
+git config --global user.name "xr"
+git config --global user.email "192319969@qq.com"
+```
